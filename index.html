@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> 2026社區消費券-記錄系統</title>
-    <!-- 密碼保護驗證 -->
+    <title>2026社區消費券-記錄系統</title>
+    <!-- 密碼保護驗證（已改為 123） -->
     <script>
         const CORRECT_PASSWORD = "123"; 
         const userPassword = prompt("請輸入訪問密碼才能使用系統：");
@@ -265,7 +265,7 @@
 <body>
 
 <div class="container">
-    <h1>💰 現金清點與記錄系統</h1>
+    <h1>🎟️ 2026社區消費券-記錄系統</h1>
 
     <div id="channels-container">
         <!-- 動態生成渠道 -->
@@ -313,7 +313,8 @@
 </div>
 
 <script>
-    const channels = ['MPay', '中銀', 'icbc', '大豐', '支付寶', '國際', '廣發', 'UEPay'];
+    // 將大豐移至陣列最後一位
+    const channels = ['MPay', '中銀', 'icbc', '支付寶', '國際', '廣發', 'UEPay', '大豐'];
     const denominations = [10, 20, 50, 100, 200];
 
     function initApp() {
@@ -348,16 +349,16 @@
         // 載入歷史記錄
         loadHistory();
 
-        // 核心修改：重新載入時，自動把歷史記錄中最上面（最新）的一筆數據填入上方表格
+        // 自動將歷史記錄中最新的一筆數據載入到上方表格中
         loadLatestRecordToForm();
     }
 
     // 將歷史記錄中最新的一筆數據自動填入上方表格
     function loadLatestRecordToForm() {
         let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
-        if (history.length === 0) return; // 如果沒有歷史記錄則不動作
+        if (history.length === 0) return;
 
-        let latestRecord = history[0]; // 取得最上面最新的一筆
+        let latestRecord = history[0];
         channels.forEach(channel => {
             denominations.forEach(denom => {
                 let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
@@ -569,7 +570,7 @@
                     
                     localStorage.setItem('cash_history', JSON.stringify(combined));
                     loadHistory();
-                    loadLatestRecordToForm(); // 自動把最新的帶入表格
+                    loadLatestRecordToForm();
 
                     alert(`成功匯入 ${importedHistory.length} 筆記錄，並已將最新數據更新到表格！`);
                 } else {
