@@ -148,7 +148,7 @@
 <body>
 
 <div class="container">
-    <h1>現金清點與記錄系統</h1>
+    <h1>現金清單與記錄系統</h1>
 
     <div id="channels-container">
         <!-- 動態生成渠道 -->
@@ -280,7 +280,7 @@
         };
 
         let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
-        history.unshift(recordItem); // 放最前面
+        history.unshift(recordItem);
         localStorage.setItem('cash_history', JSON.stringify(history));
 
         loadHistory();
@@ -315,10 +315,36 @@
                 <td>${item.time}</td>
                 <td style="font-weight:bold; color:var(--success-color);">${item.total}</td>
                 <td style="text-align:left; font-size:0.85rem;">${summaryStr || '無填寫金額'}</td>
-                <td><button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteRecord(${index})">刪除</button></td>
+                <td>
+                    <button class="btn-primary" style="padding:4px 8px; font-size:0.8rem; margin-right:4px;" onclick="loadRecordToForm(${index})">帶入表單</button>
+                    <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteRecord(${index})">刪除</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    // 將歷史記錄中的某一筆資料帶入上方表格
+    function loadRecordToForm(index) {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        if (!history[index]) return;
+
+        let record = history[index];
+        channels.forEach(channel => {
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                if (input) {
+                    let val = 0;
+                    if (record.details && record.details[channel] && record.details[channel][denom] !== undefined) {
+                        val = record.details[channel][denom];
+                    }
+                    input.value = val;
+                }
+            });
+        });
+        calculateTotal();
+        alert(`已成功將 ${record.time} 的記錄帶入上方表格！`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // 刪除單筆記錄
@@ -360,7 +386,7 @@
         document.body.removeChild(link);
     }
 
-    // 匯入 CSV
+    // 匯入 CSV（並自動將最新一筆數據帶入上方表格）
     function importCSV(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -372,12 +398,10 @@
                 const lines = text.split('\n');
                 let importedHistory = [];
 
-                // 從第二行開始讀取（跳過標題）
                 for (let i = 1; i < lines.length; i++) {
                     let line = lines[i].trim();
                     if (!line) continue;
 
-                    // 解析 CSV 格式："時間","總金額","詳細內容"
                     let rowMatch = line.match(/^"(.*?)","(.*?)","(.*)"$/);
                     if (rowMatch) {
                         let time = rowMatch[1];
@@ -394,16 +418,29 @@
                 }
 
                 if (importedHistory.length > 0) {
-                    // 合併到現有的 LocalStorage 記錄中
                     let currentHistory = JSON.parse(localStorage.getItem('cash_history') || '[]');
                     let combined = importedHistory.concat(currentHistory);
                     
                     localStorage.setItem('cash_history', JSON.stringify(combined));
-                    
-                    // 重新載入畫面上的歷史記錄表格
                     loadHistory();
-                    
-                    alert(`成功匯入 ${importedHistory.length} 筆記錄！`);
+
+                    // ⭐ 自動將匯入的第一筆記錄帶入上方表格
+                    let latestImported = importedHistory[0];
+                    channels.forEach(channel => {
+                        denominations.forEach(denom => {
+                            let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                            if (input) {
+                                let val = 0;
+                                if (latestImported.details && latestImported.details[channel] && latestImported.details[channel][denom] !== undefined) {
+                                    val = latestImported.details[channel][denom];
+                                }
+                                input.value = val;
+                            }
+                        });
+                    });
+                    calculateTotal();
+
+                    alert(`成功匯入 ${importedHistory.length} 筆記錄，並已將最新一筆數據更新到上方表格！`);
                 } else {
                     alert('未能成功解析 CSV 檔案的內容，請確認格式是否正確。');
                 }
