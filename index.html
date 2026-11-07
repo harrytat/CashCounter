@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>現金找贖與記錄系統</title>
+    <!-- 密碼保護驗證腳本：必須在網頁載入時第一時間執行 -->
+    <script>
+        // 設定你的訪問密碼（你可以隨時修改引號裏面的數字或文字）
+        const CORRECT_PASSWORD = "1234"; 
+
+        // 彈出密碼輸入框
+        const userPassword = prompt("請輸入訪問密碼才能使用系統：");
+        if (userPassword !== CORRECT_PASSWORD) {
+            // 密碼錯誤時直接清空頁面並顯示拒絕存取提示
+            document.documentElement.innerHTML = "<h2 style='text-align:center; margin-top:100px; color:#e74c3c; font-family:sans-serif;'>❌ 存取被拒絕：密碼錯誤，請重新整理網頁再試。</h2>";
+            throw new Error("Unauthorized");
+        }
+    </script>
+
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -424,7 +438,6 @@
                     localStorage.setItem('cash_history', JSON.stringify(combined));
                     loadHistory();
 
-                    // 自動將匯入的第一筆記錄帶入上方表格
                     let latestImported = importedHistory[0];
                     channels.forEach(channel => {
                         denominations.forEach(denom => {
