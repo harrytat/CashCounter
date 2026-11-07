@@ -378,7 +378,6 @@
                     if (!line) continue;
 
                     // 解析 CSV 格式："時間","總金額","詳細內容"
-                    // 簡單用正規表達式匹配引號內的欄位
                     let rowMatch = line.match(/^"(.*?)","(.*?)","(.*)"$/);
                     if (rowMatch) {
                         let time = rowMatch[1];
@@ -400,7 +399,10 @@
                     let combined = importedHistory.concat(currentHistory);
                     
                     localStorage.setItem('cash_history', JSON.stringify(combined));
+                    
+                    // 重新載入畫面上的歷史記錄表格
                     loadHistory();
+                    
                     alert(`成功匯入 ${importedHistory.length} 筆記錄！`);
                 } else {
                     alert('未能成功解析 CSV 檔案的內容，請確認格式是否正確。');
@@ -409,7 +411,6 @@
                 console.error(error);
                 alert('匯入失敗，檔案格式可能有誤。');
             }
-            // 清空 input 讓同一個檔案可以重複選取
             event.target.value = '';
         };
         reader.readAsText(file, 'UTF-8');
