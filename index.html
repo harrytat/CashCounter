@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現金找贖與記錄系統</title>
+    <!-- 密碼保護驗證 -->
+    <script>
+        const CORRECT_PASSWORD = "1234"; 
+        const userPassword = prompt("請輸入訪問密碼才能使用系統：");
+        if (userPassword !== CORRECT_PASSWORD) {
+            document.documentElement.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#f8f9fa;font-family:sans-serif;'><h2 style='color:#e74c3c;background:white;padding:30px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);'>❌ 存取被拒絕：密碼錯誤</h2></div>";
+            throw new Error("Unauthorized");
+        }
+    </script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --success-hover: #059669;
+            --warning: #f59e0b;
+            --warning-hover: #d97706;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 12px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-main);
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        h2.section-title {
+            margin-top: 24px;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+
+        /* 渠道卡片設計 */
+        .channel-group {
+            background: #fafafa;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        @media (min-width: 600px) {
+            .channel-group {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 14px;
+            }
+        }
+
+        .channel-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .channel-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+
+        .channel-total {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 1rem;
+        }
+
+        .denomination-inputs {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .input-group label {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px 2px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            background: #eff6ff;
+            border-radius: 4px;
+        }
+
+        /* 總金額懸浮/醒目框 */
+        .summary-box {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        /* 按鈕群組 */
+        .btn-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .btn-container-history {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 500px) {
+            .btn-container, .btn-container-history {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        button, .file-upload-label {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        button:active, .file-upload-label:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-success { background-color: var(--success); }
+        .btn-success:hover { background-color: var(--success-hover); }
+
+        .btn-warning { background-color: var(--warning); }
+        .btn-warning:hover { background-color: var(--warning-hover); }
+
+        .btn-danger { background-color: var(--danger); }
+        .btn-danger:hover { background-color: var(--danger-hover); }
+
+        textarea {
+            width: 100%;
+            height: 90px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85rem;
+            background: #fafafa;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        /* 歷史記錄表格優化 */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .action-btns button {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>💰 現金清點與記錄系統</h1>
+
+    <div id="channels-container">
+        <!-- 動態生成渠道 -->
+    </div>
+
+    <div class="summary-box">
+        <span>總金額</span>
+        <span id="grand-total">$0</span>
+    </div>
+
+    <div class="btn-container">
+        <button class="btn-primary" onclick="generateText()">生成複製文字</button>
+        <button class="btn-success" onclick="saveRecord()">保存記錄</button>
+        <button class="btn-warning" onclick="resetForm()">重設清空</button>
+    </div>
+
+    <textarea id="output-text" readonly placeholder="點擊「生成複製文字」後在此顯示..."></textarea>
+
+    <h2 class="section-title">📂 歷史保存記錄</h2>
+    
+    <div class="btn-container-history">
+        <button class="btn-primary" onclick="exportCSV()">匯出 CSV</button>
+        <label class="file-upload-label btn-warning" style="margin: 0; color: white; cursor: pointer;">
+            匯入 CSV
+            <input type="file" id="import-file" accept=".csv" style="display: none;" onchange="importCSV(event)">
+        </label>
+        <button class="btn-danger" onclick="clearHistory()">清除全部</button>
+    </div>
+
+    <div class="table-responsive">
+        <table id="history-table">
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>總金額</th>
+                    <th>詳細摘要</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="history-body">
+                <!-- 歷史記錄動態插入 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const channels = ['MPay', '中銀', 'icbc', '大豐', '支付寶', '國際', '廣發', 'UEPay'];
+    const denominations = [10, 20, 50, 100, 200];
+
+    function initApp() {
+        const container = document.getElementById('channels-container');
+        container.innerHTML = '';
+        
+        channels.forEach(channel => {
+            let div = document.createElement('div');
+            div.className = 'channel-group';
+            
+            let html = `
+                <div class="channel-info">
+                    <span class="channel-name">${channel}</span>
+                    <span class="channel-total" id="total-${channel}">$0</span>
+                </div>
+                <div class="denomination-inputs">
+            `;
+            
+            denominations.forEach(denom => {
+                html += `
+                    <div class="input-group">
+                        <label>$${denom}</label>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" value="0" data-channel="${channel}" data-denom="${denom}" oninput="calculateTotal()">
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            div.innerHTML = html;
+            container.appendChild(div);
+        });
+        loadHistory();
+    }
+
+    function calculateTotal() {
+        let grandTotal = 0;
+        channels.forEach(channel => {
+            let channelTotal = 0;
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                let count = parseInt(input.value) || 0;
+                channelTotal += count * denom;
+            });
+            document.getElementById(`total-${channel}`).innerText = `$${channelTotal}`;
+            grandTotal += channelTotal;
+        });
+        document.getElementById('grand-total').innerText = `$${grandTotal}`;
+    }
+
+    function generateText() {
+        let result = [];
+        channels.forEach(channel => {
+            let line = `${channel}`;
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                let count = parseInt(input.value) || 0;
+                line += ` $${denom}(${count})`;
+            });
+            result.push(line);
+        });
+        let textArea = document.getElementById('output-text');
+        textArea.value = result.join('\n');
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            alert('已成功生成文字並複製到剪貼簿！');
+        } catch (err) {
+            alert('已生成文字（請直接在框內複製）');
+        }
+    }
+
+    function saveRecord() {
+        let now = new Date().toLocaleString();
+        let grandTotal = document.getElementById('grand-total').innerText;
+        let data = {};
+        
+        channels.forEach(channel => {
+            data[channel] = {};
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                data[channel][denom] = parseInt(input.value) || 0;
+            });
+        });
+
+        let recordItem = {
+            time: now,
+            total: grandTotal,
+            details: data
+        };
+
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        history.unshift(recordItem);
+        localStorage.setItem('cash_history', JSON.stringify(history));
+
+        loadHistory();
+        alert('記錄已成功保存！');
+    }
+
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        let tbody = document.getElementById('history-body');
+        tbody.innerHTML = '';
+
+        if (history.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color: var(--text-sub); padding: 20px;">暫無保存記錄</td></tr>`;
+            return;
+        }
+
+        history.forEach((item, index) => {
+            let summaryStr = '';
+            for (let [ch, dems] of Object.entries(item.details)) {
+                let parts = [];
+                for (let [d, c] of Object.entries(dems)) {
+                    if (c > 0) parts.push(`$${d}×${c}`);
+                }
+                if (parts.length > 0) {
+                    summaryStr += `${ch}: ${parts.join(', ')} | `;
+                }
+            }
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-size: 0.8rem; color: var(--text-sub);">${item.time}</td>
+                <td style="font-weight:700; color:var(--success);">${item.total}</td>
+                <td style="text-align:left; font-size:0.8rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">${summaryStr || '無填寫金額'}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-primary" onclick="loadRecordToForm(${index})">帶入</button>
+                        <button class="btn-danger" onclick="deleteRecord(${index})">刪除</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function loadRecordToForm(index) {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        if (!history[index]) return;
+
+        let record = history[index];
+        channels.forEach(channel => {
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                if (input) {
+                    let val = 0;
+                    if (record.details && record.details[channel] && record.details[channel][denom] !== undefined) {
+                        val = record.details[channel][denom];
+                    }
+                    input.value = val;
+                }
+            });
+        });
+        calculateTotal();
+        alert(`已成功將 ${record.time} 的記錄帶入表格！`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteRecord(index) {
+        if (confirm('確定要刪除這筆記錄嗎？')) {
+            let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+            history.splice(index, 1);
+            localStorage.setItem('cash_history', JSON.stringify(history));
+            loadHistory();
+        }
+    }
+
+    function clearHistory() {
+        if (confirm('確定要清空所有歷史記錄嗎？')) {
+            localStorage.removeItem('cash_history');
+            loadHistory();
+        }
+    }
+
+    function exportCSV() {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        if (history.length === 0) {
+            alert('沒有可匯出的記錄！');
+            return;
+        }
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF時間,總金額,詳細內容\n";
+        history.forEach(item => {
+            let summaryStr = JSON.stringify(item.details).replace(/"/g, '""');
+            csvContent += `"${item.time}","${item.total}","${summaryStr}"\n`;
+        });
+        let encodedUri = encodeURI(csvContent);
+        let link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `cash_records_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function importCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let importedHistory = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line) continue;
+
+                    let rowMatch = line.match(/^"(.*?)","(.*?)","(.*)"$/);
+                    if (rowMatch) {
+                        let time = rowMatch[1];
+                        let total = rowMatch[2];
+                        let detailsStr = rowMatch[3].replace(/""/g, '"');
+                        let details = JSON.parse(detailsStr);
+
+                        importedHistory.push({
+                            time: time,
+                            total: total,
+                            details: details
+                        });
+                    }
+                }
+
+                if (importedHistory.length > 0) {
+                    let currentHistory = JSON.parse(localStorage.getItem('cash_history') || '[]');
+                    let combined = importedHistory.concat(currentHistory);
+                    
+                    localStorage.setItem('cash_history', JSON.stringify(combined));
+                    loadHistory();
+
+                    let latestImported = importedHistory[0];
+                    channels.forEach(channel => {
+                        denominations.forEach(denom => {
+                            let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                            if (input) {
+                                let val = 0;
+                                if (latestImported.details && latestImported.details[channel] && latestImported.details[channel][denom] !== undefined) {
+                                    val = latestImported.details[channel][denom];
+                                }
+                                input.value = val;
+                            }
+                        });
+                    });
+                    calculateTotal();
+
+                    alert(`成功匯入 ${importedHistory.length} 筆記錄，並已將最新數據更新到表格！`);
+                } else {
+                    alert('未能成功解析 CSV 內容。');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('匯入失敗，檔案格式可能有誤。');
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function resetForm() {
+        if (confirm('確定要清空目前輸入的數值嗎？')) {
+            document.querySelectorAll('.channel-group input').forEach(input => input.value = 0);
+            calculateTotal();
+        }
+    }
+
+    window.onload = initApp;
+</script>
+
+</body>
+</html>
