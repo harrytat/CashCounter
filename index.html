@@ -98,8 +98,9 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
-        button {
+        button, .file-upload-label {
             flex: 1;
             padding: 12px;
             border: none;
@@ -107,7 +108,9 @@
             font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
+            text-align: center;
             transition: background 0.2s;
+            display: inline-block;
         }
         .btn-primary { background-color: var(--accent-color); color: white; }
         .btn-primary:hover { background-color: #2980b9; }
@@ -126,6 +129,7 @@
             border: 1px solid #ccc;
             border-radius: 6px;
             font-family: monospace;
+            box-sizing: border-box;
         }
         table {
             width: 100%;
@@ -167,6 +171,10 @@
     <h2 class="section-title">歷史保存記錄</h2>
     <div class="btn-container" style="margin-bottom: 10px;">
         <button class="btn-primary" onclick="exportCSV()">匯出 CSV 檔案</button>
+        <label class="file-upload-label btn-warning" style="margin: 0; color: white;">
+            匯入 CSV 檔案
+            <input type="file" id="import-file" accept=".csv" style="display: none;" onchange="importCSV(event)">
+        </label>
         <button class="btn-danger" onclick="clearHistory()">清除所有記錄</button>
     </div>
     <div style="overflow-x: auto;">
@@ -334,7 +342,7 @@
     // 匯出 CSV
     function exportCSV() {
         let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
-        if (history.length === '0') {
+        if (history.length === 0) {
             alert('沒有可匯出的記錄！');
             return;
         }
@@ -350,6 +358,61 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    // 匯入 CSV
+    function importCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let importedHistory = [];
+
+                // 從第二行開始讀取（跳過標題）
+                for (let i = 1; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line) continue;
+
+                    // 解析 CSV 格式："時間","總金額","詳細內容"
+                    // 簡單用正規表達式匹配引號內的欄位
+                    let rowMatch = line.match(/^"(.*?)","(.*?)","(.*)"$/);
+                    if (rowMatch) {
+                        let time = rowMatch[1];
+                        let total = rowMatch[2];
+                        let detailsStr = rowMatch[3].replace(/""/g, '"');
+                        let details = JSON.parse(detailsStr);
+
+                        importedHistory.push({
+                            time: time,
+                            total: total,
+                            details: details
+                        });
+                    }
+                }
+
+                if (importedHistory.length > 0) {
+                    // 合併到現有的 LocalStorage 記錄中
+                    let currentHistory = JSON.parse(localStorage.getItem('cash_history') || '[]');
+                    let combined = importedHistory.concat(currentHistory);
+                    
+                    localStorage.setItem('cash_history', JSON.stringify(combined));
+                    loadHistory();
+                    alert(`成功匯入 ${importedHistory.length} 筆記錄！`);
+                } else {
+                    alert('未能成功解析 CSV 檔案的內容，請確認格式是否正確。');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('匯入失敗，檔案格式可能有誤。');
+            }
+            // 清空 input 讓同一個檔案可以重複選取
+            event.target.value = '';
+        };
+        reader.readAsText(file, 'UTF-8');
     }
 
     // 重設表單
