@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現金找贖與記錄系統</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --bg-color: #f8f9fa;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+        .section-title {
+            margin-top: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            color: var(--primary-color);
+        }
+        .channel-group {
+            background: #fdfdfd;
+            border: 1px solid #e1e8ed;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .channel-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-width: 90px;
+            color: #2c3e50;
+        }
+        .denomination-inputs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .input-group label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .input-group input {
+            width: 55px;
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .channel-total {
+            font-weight: bold;
+            color: var(--success-color);
+            min-width: 80px;
+            text-align: right;
+        }
+        .summary-box {
+            background: #eaf2f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-success:hover { background-color: #219653; }
+        .btn-warning { background-color: #e67e22; color: white; }
+        .btn-warning:hover { background-color: #d35400; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
+        
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>現金清點與記錄系統</h1>
+
+    <div id="channels-container">
+        <!-- 動態生成渠道 -->
+    </div>
+
+    <div class="summary-box">
+        <span>總金額：</span>
+        <span id="grand-total">$0</span>
+    </div>
+
+    <div class="btn-container">
+        <button class="btn-primary" onclick="generateText()">生成複製文字</button>
+        <button class="btn-success" onclick="saveRecord()">保存記錄</button>
+        <button class="btn-warning" onclick="resetForm()">重設清空</button>
+    </div>
+
+    <h3>生成結果：</h3>
+    <textarea id="output-text" readonly placeholder="點擊上方「生成複製文字」後在此顯示..."></textarea>
+
+    <h2 class="section-title">歷史保存記錄</h2>
+    <div class="btn-container" style="margin-bottom: 10px;">
+        <button class="btn-primary" onclick="exportCSV()">匯出 CSV 檔案</button>
+        <button class="btn-danger" onclick="clearHistory()">清除所有記錄</button>
+    </div>
+    <div style="overflow-x: auto;">
+        <table id="history-table">
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>總金額</th>
+                    <th>詳細摘要</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="history-body">
+                <!-- 歷史記錄動態插入 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const channels = ['MPay', '中銀', 'icbc', '大豐', '支付寶', '國際', '廣發', 'UEPay'];
+    const denominations = [10, 20, 50, 100, 200];
+
+    // 初始化介面
+    function initApp() {
+        const container = document.getElementById('channels-container');
+        container.innerHTML = '';
+        
+        channels.forEach(channel => {
+            let div = document.createElement('div');
+            div.className = 'channel-group';
+            
+            let html = `<div class="channel-name">${channel}</div><div class="denomination-inputs">`;
+            denominations.forEach(denom => {
+                html += `
+                    <div class="input-group">
+                        <label>$${denom}</label>
+                        <input type="number" min="0" value="0" data-channel="${channel}" data-denom="${denom}" oninput="calculateTotal()">
+                    </div>
+                `;
+            });
+            html += `</div><div class="channel-total" id="total-${channel}">$0</div>`;
+            div.innerHTML = html;
+            container.appendChild(div);
+        });
+        loadHistory();
+    }
+
+    // 計算總金額
+    function calculateTotal() {
+        let grandTotal = 0;
+        channels.forEach(channel => {
+            let channelTotal = 0;
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                let count = parseInt(input.value) || 0;
+                channelTotal += count * denom;
+            });
+            document.getElementById(`total-${channel}`).innerText = `$${channelTotal}`;
+            grandTotal += channelTotal;
+        });
+        document.getElementById('grand-total').innerText = `$${grandTotal}`;
+    }
+
+    // 生成指定格式文字
+    function generateText() {
+        let result = [];
+        channels.forEach(channel => {
+            let line = `${channel}`;
+            let hasValue = false;
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                let count = parseInt(input.value) || 0;
+                line += ` $${denom}(${count})`;
+                if (count > 0) hasValue = true;
+            });
+            result.push(line);
+        });
+        document.getElementById('output-text').value = result.join('\n');
+        document.getElementById('output-text').select();
+        document.execCommand('copy');
+        alert('已成功生成文字並自動複製到剪貼簿！');
+    }
+
+    // 保存記錄到 LocalStorage
+    function saveRecord() {
+        let now = new Date().toLocaleString();
+        let grandTotal = document.getElementById('grand-total').innerText;
+        let data = {};
+        
+        channels.forEach(channel => {
+            data[channel] = {};
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                data[channel][denom] = parseInt(input.value) || 0;
+            });
+        });
+
+        let recordItem = {
+            time: now,
+            total: grandTotal,
+            details: data
+        };
+
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        history.unshift(recordItem); // 放最前面
+        localStorage.setItem('cash_history', JSON.stringify(history));
+
+        loadHistory();
+        alert('記錄已成功保存！');
+    }
+
+    // 載入歷史記錄
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        let tbody = document.getElementById('history-body');
+        tbody.innerHTML = '';
+
+        if (history.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color: #888;">暫無保存記錄</td></tr>`;
+            return;
+        }
+
+        history.forEach((item, index) => {
+            let summaryStr = '';
+            for (let [ch, dems] of Object.entries(item.details)) {
+                let parts = [];
+                for (let [d, c] of Object.entries(dems)) {
+                    if (c > 0) parts.push(`$${d}×${c}`);
+                }
+                if (parts.length > 0) {
+                    summaryStr += `${ch}: ${parts.join(', ')} | `;
+                }
+            }
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.time}</td>
+                <td style="font-weight:bold; color:var(--success-color);">${item.total}</td>
+                <td style="text-align:left; font-size:0.85rem;">${summaryStr || '無填寫金額'}</td>
+                <td><button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteRecord(${index})">刪除</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 刪除單筆記錄
+    function deleteRecord(index) {
+        if (confirm('確定要刪除這筆記錄嗎？')) {
+            let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+            history.splice(index, 1);
+            localStorage.setItem('cash_history', JSON.stringify(history));
+            loadHistory();
+        }
+    }
+
+    // 清除所有記錄
+    function clearHistory() {
+        if (confirm('確定要清空所有歷史記錄嗎？此操作無法復原。')) {
+            localStorage.removeItem('cash_history');
+            loadHistory();
+        }
+    }
+
+    // 匯出 CSV
+    function exportCSV() {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        if (history.length === '0') {
+            alert('沒有可匯出的記錄！');
+            return;
+        }
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF時間,總金額,詳細內容\n";
+        history.forEach(item => {
+            let summaryStr = JSON.stringify(item.details).replace(/"/g, '""');
+            csvContent += `"${item.time}","${item.total}","${summaryStr}"\n`;
+        });
+        let encodedUri = encodeURI(csvContent);
+        let link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `cash_records_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 重設表單
+    function resetForm() {
+        if (confirm('確定要清空目前輸入的數值嗎？')) {
+            document.querySelectorAll('.channel-group input').forEach(input => input.value = 0);
+            calculateTotal();
+        }
+    }
+
+    window.onload = initApp;
+</script>
+
+</body>
+</html>
