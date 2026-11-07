@@ -148,7 +148,7 @@
 <body>
 
 <div class="container">
-    <h1>現金清單與記錄系統</h1>
+    <h1>現金清點與記錄系統</h1>
 
     <div id="channels-container">
         <!-- 動態生成渠道 -->
@@ -424,7 +424,7 @@
                     localStorage.setItem('cash_history', JSON.stringify(combined));
                     loadHistory();
 
-                    // ⭐ 自動將匯入的第一筆記錄帶入上方表格
+                    // 自動將匯入的第一筆記錄帶入上方表格
                     let latestImported = importedHistory[0];
                     channels.forEach(channel => {
                         denominations.forEach(denom => {
