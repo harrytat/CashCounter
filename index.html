@@ -71,7 +71,6 @@
             margin-bottom: 12px;
         }
 
-        /* 渠道卡片設計 */
         .channel-group {
             background: #fafafa;
             border: 1px solid var(--border-color);
@@ -81,7 +80,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            transition: all 0.2s ease;
         }
 
         @media (min-width: 600px) {
@@ -151,7 +149,6 @@
             border-radius: 4px;
         }
 
-        /* 總金額懸浮/醒目框 */
         .summary-box {
             background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
             color: white;
@@ -166,7 +163,6 @@
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
         }
 
-        /* 按鈕群組 */
         .btn-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -208,16 +204,9 @@
         }
 
         .btn-primary { background-color: var(--primary); }
-        .btn-primary:hover { background-color: var(--primary-hover); }
-
         .btn-success { background-color: var(--success); }
-        .btn-success:hover { background-color: var(--success-hover); }
-
         .btn-warning { background-color: var(--warning); }
-        .btn-warning:hover { background-color: var(--warning-hover); }
-
         .btn-danger { background-color: var(--danger); }
-        .btn-danger:hover { background-color: var(--danger-hover); }
 
         textarea {
             width: 100%;
@@ -233,7 +222,6 @@
             resize: vertical;
         }
 
-        /* 歷史記錄表格優化 */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -259,10 +247,6 @@
             background-color: #f8fafc;
             font-weight: 600;
             color: var(--text-sub);
-        }
-
-        tr:last-child td {
-            border-bottom: none;
         }
 
         .action-btns {
@@ -360,7 +344,33 @@
             div.innerHTML = html;
             container.appendChild(div);
         });
+
+        // 載入歷史記錄
         loadHistory();
+
+        // 核心修改：重新載入時，自動把歷史記錄中最上面（最新）的一筆數據填入上方表格
+        loadLatestRecordToForm();
+    }
+
+    // 將歷史記錄中最新的一筆數據自動填入上方表格
+    function loadLatestRecordToForm() {
+        let history = JSON.parse(localStorage.getItem('cash_history') || '[]');
+        if (history.length === 0) return; // 如果沒有歷史記錄則不動作
+
+        let latestRecord = history[0]; // 取得最上面最新的一筆
+        channels.forEach(channel => {
+            denominations.forEach(denom => {
+                let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
+                if (input) {
+                    let val = 0;
+                    if (latestRecord.details && latestRecord.details[channel] && latestRecord.details[channel][denom] !== undefined) {
+                        val = latestRecord.details[channel][denom];
+                    }
+                    input.value = val;
+                }
+            });
+        });
+        calculateTotal();
     }
 
     function calculateTotal() {
@@ -396,7 +406,7 @@
             document.execCommand('copy');
             alert('已成功生成文字並複製到剪貼簿！');
         } catch (err) {
-            alert('已生成文字（請直接在框內複製）');
+            alert('已生成文字');
         }
     }
 
@@ -424,7 +434,7 @@
         localStorage.setItem('cash_history', JSON.stringify(history));
 
         loadHistory();
-        alert('記錄已成功保存！');
+        alert('記錄已成功保存到歷史記錄！');
     }
 
     function loadHistory() {
@@ -559,21 +569,7 @@
                     
                     localStorage.setItem('cash_history', JSON.stringify(combined));
                     loadHistory();
-
-                    let latestImported = importedHistory[0];
-                    channels.forEach(channel => {
-                        denominations.forEach(denom => {
-                            let input = document.querySelector(`input[data-channel="${channel}"][data-denom="${denom}"]`);
-                            if (input) {
-                                let val = 0;
-                                if (latestImported.details && latestImported.details[channel] && latestImported.details[channel][denom] !== undefined) {
-                                    val = latestImported.details[channel][denom];
-                                }
-                                input.value = val;
-                            }
-                        });
-                    });
-                    calculateTotal();
+                    loadLatestRecordToForm(); // 自動把最新的帶入表格
 
                     alert(`成功匯入 ${importedHistory.length} 筆記錄，並已將最新數據更新到表格！`);
                 } else {
